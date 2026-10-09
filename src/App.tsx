@@ -247,8 +247,9 @@ export default function App() {
               </div>
 
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl flex-shrink-0">
-                  <i className="fa-solid fa-triangle-exclamation"></i>
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
+                  <i className="fa-solid fa-book-bookmark"></i>
+                </div>
                 </div>
                 <div>
                   <p className="text-xs uppercase font-bold tracking-wider text-slate-400">Títulos Cadastrados</p>
