@@ -24,12 +24,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Instalar dependencias
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
-      - name: Compilar projeto (Vite + Tailwind)
+      - name: Compilar projeto
         run: npm run build
 
       - name: Upload dos arquivos compilados
