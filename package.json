@@ -3,31 +3,26 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": 
-  "https://gilles-correia.github.io/biblio",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
-    "lint": "oxlint",
+    "build": "tsc && vite build",
+    "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.20.0",
-    "lucide-react": "^1.41.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "@fortawesome/fontawesome-free": "^6.4.0",
+    "axios": "^1.6.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.1.0",
-    "gh-pages": "^6.3.0",
-    "oxlint": "^1.79.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
   }
-  
 }
