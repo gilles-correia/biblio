@@ -151,7 +151,7 @@ export default function App() {
                 AB
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-xs font-semibold leading-tight">Ana Beatriz</p>
+                <p className="text-xs font-semibold leading-tight">ADM</p>
                 <p className="text-[10px] text-blue-200 leading-tight">Bibliotecária</p>
               </div>
             </div>
