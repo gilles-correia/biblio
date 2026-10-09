@@ -148,11 +148,11 @@ export default function App() {
 
             <div className="flex items-center gap-3 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/15">
               <div className="w-8 h-8 rounded-full bg-blue-400 text-slate-900 font-bold flex items-center justify-center text-sm shadow">
-                AB
+                ADM
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-xs font-semibold leading-tight">ADM</p>
-                <p className="text-[10px] text-blue-200 leading-tight">Bibliotecária</p>
+                <p className="text-xs font-semibold leading-tight">Administrador</p>
+                <p className="text-[10px] text-blue-200 leading-tight">ADM</p>
               </div>
             </div>
           </div>
@@ -246,15 +246,15 @@ export default function App() {
                 </div>
               </div>
 
+              {/* CARD DE TÍTULOS CADASTRADOS COM ÍCONE DE LIVRO */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl flex-shrink-0">
                   <i className="fa-solid fa-book-bookmark"></i>
                 </div>
-                </div>
                 <div>
                   <p className="text-xs uppercase font-bold tracking-wider text-slate-400">Títulos Cadastrados</p>
                   <h3 className="text-2xl font-extrabold text-slate-800 mt-1">{livros.length}</h3>
-                  <p className="text-xs text-amber-600 mt-1 font-medium"><i className="fa-solid fa-book"></i> No banco de dados</p>
+                  <p className="text-xs text-blue-600 mt-1 font-medium"><i className="fa-solid fa-book"></i> No banco de dados</p>
                 </div>
               </div>
 
