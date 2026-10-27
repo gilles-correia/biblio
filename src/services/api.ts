@@ -1,7 +1,20 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 export const api = axios.create({
   baseURL: 'https://gille3470.c35.integrator.host',
+});
+
+api.interceptors.request.use((config) => {
+  if (typeof window === 'undefined') {
+    return config;
+  }
+
+  const token = localStorage.getItem('@Biblioteca:token');
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
 });
 
 export interface Usuario {
