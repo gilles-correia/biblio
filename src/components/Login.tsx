@@ -28,7 +28,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
         setPassword('');
       } else {
         // Fluxo de Autenticação / Signin
-        const response = await api.post('/signin', { email, password });
+        const response = await api.post('/login-biblio', { email, password });
         const { token, name, email: userEmail, adm, empresa } = response.data;
 
         // Armazena o JWT no localStorage para o api.ts utilizar
