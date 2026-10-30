@@ -11,18 +11,22 @@ export default function App() {
     return userSalvo ? JSON.parse(userSalvo) : null;
   });
 
-  const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'cadastrar-usuario' | 'usuarios' | 'livros' | 'emprestimos'>('dashboard');
+  // NAVEGAÇÃO DE ABAS (Aba de cadastro removida)
+  const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'usuarios' | 'livros' | 'emprestimos'>('dashboard');
 
   // ESTADOS DO SISTEMA
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [livros, setLivros] = useState<Livro[]>([]);
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
 
-  // Form Usuario
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [tipo, setTipo] = useState<'ALUNO' | 'PROFESSOR'>('ALUNO');
-  const [usuarioEditandoId, setUsuarioEditandoId] = useState<number | null>(null);
+  // MODAIS (Visualização e Edição de Usuário)
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
+  const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+
+  // Form Edição de Usuário (Sem campo de senha)
+  const [editNome, setEditNome] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editTipo, setEditTipo] = useState<'ALUNO' | 'PROFESSOR'>('ALUNO');
 
   // Form Emprestimo
   const [usuarioSel, setUsuarioSel] = useState<number | ''>('');
@@ -64,7 +68,6 @@ export default function App() {
     }
   }
 
-  // Executa o carregamento assim que houver um token válido
   useEffect(() => {
     if (token) {
       carregarTudo();
@@ -75,7 +78,7 @@ export default function App() {
     localStorage.setItem('@Biblioteca:token', novoToken);
     localStorage.setItem('@Biblioteca:user', JSON.stringify(dadosUsuario));
     setUsuarioLogado(dadosUsuario);
-    setToken(novoToken); // Isso dispara o useEffect automaticamente
+    setToken(novoToken);
   }
 
   function handleLogout() {
@@ -85,57 +88,49 @@ export default function App() {
     setUsuarioLogado(null);
   }
 
-  async function handleSalvarUsuario(e: React.FormEvent) {
+  // --- AÇÕES DE USUÁRIO (EDIÇÃO E INATIVAÇÃO) ---
+  function abrirModalEditar(u: Usuario) {
+    setUsuarioEditando(u);
+    setEditNome(u.nome);
+    setEditEmail(u.email);
+    setEditTipo(u.tipo);
+  }
+
+  async function handleSalvarEdicaoUsuario(e: React.FormEvent) {
     e.preventDefault();
-    if (!nome.trim() || !email.trim()) {
+    if (!usuarioEditando) return;
+
+    if (!editNome.trim() || !editEmail.trim()) {
       return mostrarToast('Atenção', 'Preencha o nome e o e-mail.', 'erro');
     }
 
     try {
-      if (usuarioEditandoId !== null) {
-        await api.put(`/usuarios/${usuarioEditandoId}`, { nome: nome.trim(), email: email.trim(), tipo });
-        mostrarToast('Sucesso!', `${nome} foi atualizado.`);
-      } else {
-        await api.post('/usuarios', { nome: nome.trim(), email: email.trim(), tipo });
-        mostrarToast('Sucesso!', `${nome} foi cadastrado.`);
-      }
-      setNome('');
-      setEmail('');
-      setTipo('ALUNO');
-      setUsuarioEditandoId(null);
-      await carregarTudo();
-      setAbaAtiva('usuarios');
+      await api.put(`/usuarios/${usuarioEditando.id}`, {
+        nome: editNome.trim(),
+        email: editEmail.trim(),
+        tipo: editTipo
+      });
+
+      mostrarToast('Sucesso!', `${editNome} foi atualizado com sucesso.`);
+      setUsuarioEditando(null);
+      carregarTudo();
     } catch (err: any) {
-      mostrarToast('Erro', err.response?.data?.error || 'Não foi possível salvar no banco.', 'erro');
+      mostrarToast('Erro', err.response?.data?.error || 'Não foi possível atualizar o usuário.', 'erro');
     }
   }
 
-  function handleEditarUsuario(usuario: Usuario) {
-    setUsuarioEditandoId(usuario.id);
-    setNome(usuario.nome);
-    setEmail(usuario.email);
-    setTipo(usuario.tipo);
-    setAbaAtiva('cadastrar-usuario');
-  }
-
-  function handleCancelarEdicaoUsuario() {
-    setUsuarioEditandoId(null);
-    setNome('');
-    setEmail('');
-    setTipo('ALUNO');
-  }
-
   async function handleInativarUsuario(id: number, nomeUser: string) {
-    if (!confirm(`Deseja inativar ${nomeUser}?`)) return;
+    if (!confirm(`Deseja realmente inativar o usuário ${nomeUser}?`)) return;
     try {
       await api.patch(`/usuarios/${id}/inativar`);
       carregarTudo();
       mostrarToast('Inativado', `${nomeUser} foi desativado.`);
     } catch {
-      mostrarToast('Erro', 'Falha ao inativar.', 'erro');
+      mostrarToast('Erro', 'Falha ao inativar usuário.', 'erro');
     }
   }
 
+  // --- EMPRÉSTIMOS ---
   async function handleRealizarEmprestimo(e: React.FormEvent) {
     e.preventDefault();
     if (!usuarioSel || !livroSel) return mostrarToast('Atenção', 'Selecione o leitor e o livro.', 'erro');
@@ -152,7 +147,7 @@ export default function App() {
 
   async function handleDevolver(id: number) {
     try {
-      await api.put(`/emprestimos/${id}/devolver`);
+      await api.patch(`/emprestimos/${id}/devolver`);
       await carregarTudo();
       mostrarToast('Devolução', 'Livro devolvido ao acervo!');
     } catch (err: any) {
@@ -179,7 +174,6 @@ export default function App() {
   const totalAcervo = livros.reduce((acc, l) => acc + Number(l.quantidade_disponivel ?? (l as any).quantidade ?? 0), 0);
   const totalEmprestados = emprestimos.filter(e => e.status === 'EMPRESTADO').length;
 
-  // SE NÃO TIVER TOKEN -> MOSTRA O LOGIN
   if (!token) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
@@ -238,16 +232,6 @@ export default function App() {
             >
               <i className="fa-solid fa-chart-pie text-base"></i>
               <span>Dashboard / Início</span>
-            </button>
-
-            <button
-              onClick={() => setAbaAtiva('cadastrar-usuario')}
-              className={`flex items-center gap-2.5 py-4 px-3 border-b-2 font-semibold text-sm whitespace-nowrap transition-all ${
-                abaAtiva === 'cadastrar-usuario' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <i className="fa-solid fa-user-plus text-base"></i>
-              <span>Cadastrar Usuário</span>
             </button>
 
             <button
@@ -340,13 +324,13 @@ export default function App() {
                   <i className="fa-solid fa-bolt text-amber-500"></i> Acesso Rápido
                 </h2>
                 <div className="space-y-3">
-                  <button onClick={() => setAbaAtiva('cadastrar-usuario')} className="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all flex items-center gap-3">
+                  <button onClick={() => setAbaAtiva('usuarios')} className="w-full text-left p-3.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
-                      <i className="fa-solid fa-user-plus"></i>
+                      <i className="fa-solid fa-users"></i>
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-800">Novo Usuário</h4>
-                      <p className="text-xs text-slate-500">Cadastrar aluno ou professor</p>
+                      <h4 className="text-sm font-semibold text-slate-800">Ver Usuários</h4>
+                      <p className="text-xs text-slate-500">Consultar, editar e inativar leitores</p>
                     </div>
                   </button>
 
@@ -387,82 +371,7 @@ export default function App() {
           </div>
         )}
 
-        {/* CADASTRO DE USUÁRIO */}
-        {abaAtiva === 'cadastrar-usuario' && (
-          <div className="animate-fadeIn max-w-3xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 border-b border-slate-200 px-6 py-5">
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <i className="fa-solid fa-id-card text-blue-600"></i> {usuarioEditandoId !== null ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">{usuarioEditandoId !== null ? 'Altere os dados do usuário e salve as mudanças.' : 'Insira os dados abaixo para cadastro na biblioteca.'}</p>
-              </div>
-
-              <form onSubmit={handleSalvarUsuario} className="p-6 sm:p-8 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-2">Nome Completo *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Lucas Gabriel Silva"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-2">E-mail *</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="usuario@escola.edu.br"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-2">Perfil / Tipo *</label>
-                    <select
-                      value={tipo}
-                      onChange={(e) => setTipo(e.target.value as 'ALUNO' | 'PROFESSOR')}
-                      className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    >
-                      <option value="ALUNO">Aluno</option>
-                      <option value="PROFESSOR">Professor</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                  {usuarioEditandoId !== null && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleCancelarEdicaoUsuario();
-                        setAbaAtiva('usuarios');
-                      }}
-                      className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-all"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2"
-                  >
-                    <i className="fa-solid fa-check"></i> {usuarioEditandoId !== null ? 'Salvar Alterações' : 'Salvar Cadastro'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* CONSULTAR USUÁRIOS */}
+        {/* CONSULTAR USUÁRIOS COM AÇÕES DE VISUALIZAR, EDITAR E INATIVAR */}
         {abaAtiva === 'usuarios' && (
           <div className="animate-fadeIn">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -519,19 +428,31 @@ export default function App() {
                         </td>
                         <td className="py-4 px-6 text-center">
                           <div className="inline-flex items-center justify-center gap-2">
+                            {/* BOTÃO VISUALIZAR */}
                             <button
-                              onClick={() => handleEditarUsuario(u)}
-                              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+                              onClick={() => setUsuarioSelecionado(u)}
+                              className="px-2.5 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-200 transition-colors inline-flex items-center gap-1"
+                              title="Visualizar Detalhes"
+                            >
+                              <i className="fa-solid fa-eye"></i> Ver
+                            </button>
+
+                            {/* BOTÃO EDITAR */}
+                            <button
+                              onClick={() => abrirModalEditar(u)}
+                              className="px-2.5 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-1 shadow-sm"
                               title="Editar Usuário"
                             >
-                              Editar
+                              <i className="fa-solid fa-pen-to-square"></i> Editar
                             </button>
+
+                            {/* BOTÃO INATIVAR */}
                             <button
                               onClick={() => handleInativarUsuario(u.id, u.nome)}
-                              className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors"
+                              className="px-2.5 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors inline-flex items-center gap-1 shadow-sm"
                               title="Inativar Usuário"
                             >
-                              Inativar
+                              <i className="fa-solid fa-user-slash"></i> Inativar
                             </button>
                           </div>
                         </td>
@@ -540,7 +461,7 @@ export default function App() {
                     {usuariosFiltrados.length === 0 && (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-slate-500">
-                          Nenhum usuário encontrado.
+                          Nenhum usuário cadastrado.
                         </td>
                       </tr>
                     )}
@@ -548,6 +469,130 @@ export default function App() {
                 </table>
               </div>
             </div>
+
+            {/* MODAL DE VISUALIZAÇÃO DE DADOS (SEM EXIBIR SENHA) */}
+            {usuarioSelecionado && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-100 animate-fadeIn">
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <i className="fa-solid fa-id-card text-blue-600"></i> Dados do Usuário
+                    </h3>
+                    <button
+                      onClick={() => setUsuarioSelecionado(null)}
+                      className="text-slate-400 hover:text-slate-600 font-bold text-lg"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="py-6 space-y-4">
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Código ID</span>
+                      <p className="text-sm font-mono font-bold text-slate-700">#{usuarioSelecionado.id}</p>
+                    </div>
+
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Nome Completo</span>
+                      <p className="text-sm font-semibold text-slate-800">{usuarioSelecionado.nome}</p>
+                    </div>
+
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">E-mail Institucional</span>
+                      <p className="text-sm font-medium text-slate-700">{usuarioSelecionado.email}</p>
+                    </div>
+
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Perfil de Acesso</span>
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 mt-1">
+                        {usuarioSelecionado.tipo}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      onClick={() => setUsuarioSelecionado(null)}
+                      className="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-xl text-xs transition-all"
+                    >
+                      Fechar Visualização
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL DE EDIÇÃO DE USUÁRIO (SEM INPUT DE SENHA) */}
+            {usuarioEditando && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-100 animate-fadeIn">
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <i className="fa-solid fa-user-pen text-blue-600"></i> Editar Usuário
+                    </h3>
+                    <button
+                      onClick={() => setUsuarioEditando(null)}
+                      className="text-slate-400 hover:text-slate-600 font-bold text-lg"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSalvarEdicaoUsuario} className="py-6 space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nome Completo *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editNome}
+                        onChange={(e) => setEditNome(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-slate-600 mb-1">E-mail *</label>
+                      <input
+                        type="email"
+                        required
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Perfil / Tipo *</label>
+                      <select
+                        value={editTipo}
+                        onChange={(e) => setEditTipo(e.target.value as 'ALUNO' | 'PROFESSOR')}
+                        className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-medium"
+                      >
+                        <option value="ALUNO">Aluno</option>
+                        <option value="PROFESSOR">Professor</option>
+                      </select>
+                    </div>
+
+                    <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setUsuarioEditando(null)}
+                        className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition-all"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md transition-all flex items-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-check"></i> Salvar Alterações
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
           </div>
         )}
 
