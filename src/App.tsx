@@ -147,7 +147,7 @@ export default function App() {
 
   async function handleDevolver(id: number) {
     try {
-      await api.patch(`/emprestimos/${id}/devolver`);
+      await api.put(`/emprestimos/${id}/devolver`);
       await carregarTudo();
       mostrarToast('Devolução', 'Livro devolvido ao acervo!');
     } catch (err: any) {
